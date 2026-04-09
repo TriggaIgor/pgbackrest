@@ -162,8 +162,7 @@ Types from src/include/catalog/catversion.h
  */
 
 /*							yyyymmddN */
-#define CATALOG_VERSION_NO	202209061
-#define CATALOG_VERSION_NO_MAX	202209082
+#define CATALOG_VERSION_NO	202209081
 
 #elif PG_VERSION >= PG_VERSION_14
 
@@ -646,61 +645,9 @@ typedef struct ControlFileData
 	pg_crc32c	crc;
 } ControlFileData;
 
-#elif PG_VERSION >= PG_VERSION_15 && CATALOG_VERSION_NO == 202209081
-
-
-/*
- * Contents of pg_control for Postgres Pro Enterprise 15 (catalog_version 202209081)
- * Same as standard PG 15 but with:
- * - bool replaced by unsigned char (бинарно совместимо)
- * - added pg_old_version field before crc
- */
-typedef struct ControlFileData
-{
-	uint64		system_identifier;
-	uint32		pg_control_version;
-	uint32		catalog_version_no;
-	DBState		state;
-	pg_time_t	time;
-	XLogRecPtr	checkPoint;
-	CheckPoint	checkPointCopy;
-	XLogRecPtr	unloggedLSN;
-	XLogRecPtr	minRecoveryPoint;
-	TimeLineID	minRecoveryPointTLI;
-	XLogRecPtr	backupStartPoint;
-	XLogRecPtr	backupEndPoint;
-	bool    	backupEndRequired;
-	int			wal_level;
-	bool    	wal_log_hints;
-	int			MaxConnections;
-	int			max_worker_processes;
-	int			max_wal_senders;
-	int			max_prepared_xacts;
-	int			max_locks_per_xact;
-	bool    	track_commit_timestamp;
-	uint32		maxAlign;
-	double		floatFormat;
-	uint32		blcksz;
-	uint32		relseg_size;
-	uint32		xlog_blcksz;
-	uint32		xlog_seg_size;
-	uint32		nameDataLen;
-	uint32		indexMaxKeys;
-	uint32		toast_max_chunk_size;
-	uint32		loblksize;
-	bool    	float8ByVal;
-	uint32		data_checksum_version;
-	char		mock_authentication_nonce[MOCK_AUTH_NONCE_LEN];
-	uint32		pg_old_version;		// <- добавленное поле
-	pg_crc32c	crc;
-} ControlFileData;
-
-
-
 #elif PG_VERSION >= PG_VERSION_15 
-/*
- * Contents of pg_control.
- */
+
+
 typedef struct ControlFileData
 {
 	/*
@@ -769,20 +716,20 @@ typedef struct ControlFileData
 	TimeLineID	minRecoveryPointTLI;
 	XLogRecPtr	backupStartPoint;
 	XLogRecPtr	backupEndPoint;
-	bool		backupEndRequired;
+	unsigned char	backupEndRequired; /* bool (0 or 1) */
 
 	/*
 	 * Parameter settings that determine if the WAL can be used for archival
 	 * or hot standby.
 	 */
 	int			wal_level;
-	bool		wal_log_hints;
+	unsigned char	wal_log_hints; /* bool (0 or 1) */
 	int			MaxConnections;
 	int			max_worker_processes;
 	int			max_wal_senders;
 	int			max_prepared_xacts;
 	int			max_locks_per_xact;
-	bool		track_commit_timestamp;
+	unsigned char	track_commit_timestamp; /* bool (0 or 1) */
 
 	/*
 	 * This data is used to check for hardware-architecture compatibility of
@@ -816,7 +763,7 @@ typedef struct ControlFileData
 	uint32		toast_max_chunk_size;	/* chunk size in TOAST tables */
 	uint32		loblksize;		/* chunk size in pg_largeobject */
 
-	bool		float8ByVal;	/* float8, int8, etc pass-by-value? */
+	unsigned char	float8ByVal;	/* float8, int8, etc pass-by-value? (bool: 0 or 1) */
 
 	/* Are data pages protected by checksums? Zero if no checksum version */
 	uint32		data_checksum_version;
@@ -827,6 +774,20 @@ typedef struct ControlFileData
 	 * failed at an early stage.
 	 */
 	char		mock_authentication_nonce[MOCK_AUTH_NONCE_LEN];
+
+	/*
+	 * This field stores version (in the lower word) and edition (in the higher
+	 * word) of the source database after pg_upgrade.
+	 *
+	 * The edition is used by convert_page() to determine whether the old page
+	 * format uses 64-bit xids. Page layout version is not enough for this
+	 * because it was not bumped in EE 9.6, which introduced 64-bit xids.
+	 *
+	 * The version is not actually needed. It is stored incorrectly by EE10,
+	 * and is not stored at all by EE11, but we keep the old storage format so
+	 * that we don't have to introduce another version of control file data.
+	 */
+	uint32		pg_old_version;
 
 	/* CRC of all above ... MUST BE LAST! */
 	pg_crc32c	crc;
