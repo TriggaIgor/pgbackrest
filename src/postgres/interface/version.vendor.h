@@ -163,6 +163,7 @@ Types from src/include/catalog/catversion.h
 
 /*							yyyymmddN */
 #define CATALOG_VERSION_NO	202209061
+#define CATALOG_VERSION_NO_MAX	202209082
 
 #elif PG_VERSION >= PG_VERSION_14
 
@@ -645,8 +646,58 @@ typedef struct ControlFileData
 	pg_crc32c	crc;
 } ControlFileData;
 
-#elif PG_VERSION >= PG_VERSION_15
+#elif PG_VERSION >= PG_VERSION_15 && CATALOG_VERSION_NO == 202209081
 
+
+/*
+ * Contents of pg_control for Postgres Pro Enterprise 15 (catalog_version 202209081)
+ * Same as standard PG 15 but with:
+ * - bool replaced by unsigned char (бинарно совместимо)
+ * - added pg_old_version field before crc
+ */
+typedef struct ControlFileData
+{
+	uint64		system_identifier;
+	uint32		pg_control_version;
+	uint32		catalog_version_no;
+	DBState		state;
+	pg_time_t	time;
+	XLogRecPtr	checkPoint;
+	CheckPoint	checkPointCopy;
+	XLogRecPtr	unloggedLSN;
+	XLogRecPtr	minRecoveryPoint;
+	TimeLineID	minRecoveryPointTLI;
+	XLogRecPtr	backupStartPoint;
+	XLogRecPtr	backupEndPoint;
+	bool    	backupEndRequired;
+	int			wal_level;
+	bool    	wal_log_hints;
+	int			MaxConnections;
+	int			max_worker_processes;
+	int			max_wal_senders;
+	int			max_prepared_xacts;
+	int			max_locks_per_xact;
+	bool    	track_commit_timestamp;
+	uint32		maxAlign;
+	double		floatFormat;
+	uint32		blcksz;
+	uint32		relseg_size;
+	uint32		xlog_blcksz;
+	uint32		xlog_seg_size;
+	uint32		nameDataLen;
+	uint32		indexMaxKeys;
+	uint32		toast_max_chunk_size;
+	uint32		loblksize;
+	bool    	float8ByVal;
+	uint32		data_checksum_version;
+	char		mock_authentication_nonce[MOCK_AUTH_NONCE_LEN];
+	uint32		pg_old_version;		// <- добавленное поле
+	pg_crc32c	crc;
+} ControlFileData;
+
+
+
+#elif PG_VERSION >= PG_VERSION_15 
 /*
  * Contents of pg_control.
  */
