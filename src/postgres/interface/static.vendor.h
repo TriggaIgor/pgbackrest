@@ -37,8 +37,13 @@ typedef uint32_t uint32;
 
 // TransactionId type
 // ---------------------------------------------------------------------------------------------------------------------------------
-typedef uint32 TransactionId;
 
+#if CATALOG_VERSION_NO == 202209081
+typedef uint64_t uint64;
+typedef uint64 TransactionId;
+#else
+typedef uint32 TransactionId;
+#endif
 // FLEXIBLE_ARRAY_MEMBER macro
 // ---------------------------------------------------------------------------------------------------------------------------------
 /*
